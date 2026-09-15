@@ -35,9 +35,9 @@ Extract the PK2 archives into the `game_source` folder:
 
 ```shell
 mkdir game_source
-pk2_mate extract --archive "C:\Games\SRO\Media.pk2" --out game_source/Media
-pk2_mate extract --archive "C:\Games\SRO\Data.pk2" --out game_source/Data
-pk2_mate extract --archive "C:\Games\SRO\Map.pk2" --out game_source/Map
+pk2_mate extract --archive "C:\Games\SRO\Media.pk2" --out "game_source\Media"
+pk2_mate extract --archive "C:\Games\SRO\Data.pk2" --out "game_source\Data"
+pk2_mate extract --archive "C:\Games\SRO\Map.pk2" --out "game_source\Map"
 ```
 
 ### 3. Processing Silkroad Assets
@@ -47,6 +47,7 @@ uv run scripts/convert_ddjs.py
 uv run scripts/generate_tiles.py
 uv run scripts/generate_navmesh.py
 uv run scripts/generate_game_data.py
+uv run scripts/generate_pmtiles.py
 ```
 
 ### 4. Run the Development Server

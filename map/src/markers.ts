@@ -59,7 +59,11 @@ export function updateMarkers(currentLayerKey: string) {
       const feature = new Feature({
         geometry: new Point(coords),
         name: npc.name,
+        codename: npc.codename || npc.name,
         type: npc.teleport && npc.teleport.length > 0 ? 7 : undefined,
+        x: npc.x,
+        y: npc.y,
+        region: npc.region,
         teleport: npc.teleport,
       });
       feature.setStyle(npcStyle);
@@ -114,7 +118,11 @@ export function updateMarkers(currentLayerKey: string) {
       const feature = new Feature({
         geometry: new Point(coords),
         name: tp.name,
+        codename: tp.codename || tp.name,
         type: tp.type,
+        x: tp.x,
+        y: tp.y,
+        region: tp.region,
         teleport: tp.teleport,
       });
       const style = teleportStyles[tp.type] || teleportStyles[0];

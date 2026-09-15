@@ -14,7 +14,7 @@ import DoubleClickZoom from "ol/interaction/DoubleClickZoom";
 import { sroProjection, tileGrid, convertMapToSRO, convertSROToMap } from "./coord";
 import { markerLayer, connectionLayer, updateMarkers, npcsData, teleportsData } from "./markers";
 import { navlinkLayer, navlinkSource } from "./navlink_viz";
-import { editorEnabled, getMode } from "./navlink_editor";
+import { editorEnabled, getMode, importSingleTeleportLink } from "./navlink_editor";
 import { WORLD_BOUNDS_Z9, TELEPORT_TYPES } from "./styles";
 import { PMTiles } from "pmtiles";
 import { PMTilesDB, BlobSource } from "./pmtiles_db";
@@ -411,7 +411,6 @@ map.on("singleclick", (evt) => {
       const edgeType = feature.get("linkType") as string;
       const npc = feature.get("npc") as string | null;
       const dest = feature.get("dest") as number | null;
-      const steps = feature.get("steps") as number | null;
 
       const typeLabel = edgeType === "teleport" ? "Teleport" : "Walk Path";
 
@@ -421,7 +420,6 @@ map.on("singleclick", (evt) => {
         <div class="popup-detail" style="font-size: 11px; word-break: break-all;">To: ${toId}</div>
         ${npc ? `<div class="popup-detail" style="margin-top: 4px;">NPC: ${npc}</div>` : ""}
         ${dest !== null && dest !== undefined ? `<div class="popup-detail">Destination ID: ${dest}</div>` : ""}
-        ${steps !== null && steps !== undefined ? `<div class="popup-detail">Steps: ${steps}</div>` : ""}
         <div class="popup-detail" style="margin-top: 4px; color: #888; font-size: 11px;">Type: ${edgeType}</div>
       `;
       overlay.setPosition(evt.coordinate);
@@ -430,8 +428,15 @@ map.on("singleclick", (evt) => {
     } else if (feature.getGeometry()?.getType() === "Point") {
       const coordinates = (feature.getGeometry() as Point).getCoordinates();
       const name = feature.get("name") || "Unknown Feature";
+      const codename = feature.get("codename") || name;
+      const featX = feature.get("x");
+      const featY = feature.get("y");
+      const featRegion = feature.get("region");
 
       const sro = convertMapToSRO(coordinates[0], coordinates[1], currentLayerKey);
+      const srcX = featX !== undefined ? featX : sro.x;
+      const srcY = featY !== undefined ? featY : sro.y;
+      const srcRegion = featRegion !== undefined ? featRegion : sro.region;
       const regionString =
         currentLayerKey === "world" ? `${sro.region} (${sro.region & 0xff},${sro.region >> 8})` : `${sro.region}`;
 
@@ -453,10 +458,13 @@ map.on("singleclick", (evt) => {
               let r = d.region;
               if (r < 0) r += 65536;
               return `
-              <div class="popup-detail">
-                <a href="#" class="teleport-link" data-x="${d.x}" data-y="${d.y}" data-region="${r}" data-name="${d.name}" style="color: #bb86fc; text-decoration: underline; cursor: pointer;">
+              <div class="popup-detail" style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 3px;">
+                <a href="#" class="teleport-link" data-x="${d.x}" data-y="${d.y}" data-region="${r}" data-name="${d.name}" style="color: #bb86fc; text-decoration: underline; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   ${d.name} (Region: ${r})
                 </a>
+                ${editorEnabled ? `
+                  <button class="import-single-tp-btn" data-src-name="${name}" data-src-codename="${codename}" data-src-x="${srcX}" data-src-y="${srcY}" data-src-region="${srcRegion}" data-dst-name="${d.name}" data-dst-x="${d.x}" data-dst-y="${d.y}" data-dst-region="${r}" data-target-id="${d.target_id ?? ""}" title="Import this teleport link" style="background: #03dac6; color: #121212; border: none; border-radius: 3px; font-weight: bold; font-size: 13px; width: 20px; height: 20px; line-height: 18px; text-align: center; cursor: pointer; padding: 0; flex-shrink: 0;">+</button>
+                ` : ""}
               </div>
             `;
             })
@@ -494,6 +502,33 @@ map.on("singleclick", (evt) => {
 // Event listener for teleport links inside the popup content
 content.addEventListener("click", (e) => {
   const target = e.target as HTMLElement;
+
+  const importBtn = target.closest(".import-single-tp-btn") as HTMLElement | null;
+  if (importBtn) {
+    e.preventDefault();
+    const srcCodename = importBtn.getAttribute("data-src-codename") || "";
+    const srcX = parseFloat(importBtn.getAttribute("data-src-x") || "0");
+    const srcY = parseFloat(importBtn.getAttribute("data-src-y") || "0");
+    const srcRegion = parseInt(importBtn.getAttribute("data-src-region") || "0", 10);
+
+    const dstName = importBtn.getAttribute("data-dst-name") || "Destination";
+    const dstX = parseFloat(importBtn.getAttribute("data-dst-x") || "0");
+    const dstY = parseFloat(importBtn.getAttribute("data-dst-y") || "0");
+    const dstRegion = parseInt(importBtn.getAttribute("data-dst-region") || "0", 10);
+    const targetIdRaw = importBtn.getAttribute("data-target-id");
+    const targetId = targetIdRaw !== null && targetIdRaw !== "" ? parseInt(targetIdRaw, 10) : null;
+
+    importSingleTeleportLink(
+      { codename: srcCodename, x: srcX, y: srcY, region: srcRegion },
+      { name: dstName, x: dstX, y: dstY, region: dstRegion, target_id: targetId }
+    );
+
+    importBtn.textContent = "✓";
+    importBtn.style.background = "#4caf50";
+    (importBtn as HTMLButtonElement).disabled = true;
+    return;
+  }
+
   const link = target.closest(".teleport-link") as HTMLElement | null;
   if (!link) return;
   e.preventDefault();

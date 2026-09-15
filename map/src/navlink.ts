@@ -3,16 +3,21 @@ import { PMTilesDB } from "./pmtiles_db";
 export let navlinkData: any = null;
 
 const NAVLINK_KEY = "navigation_linkage";
-const NAVLINK_LOCAL_URL = "/assets/navigation_linkage.json.gz";
-const NAVLINK_PROXY_URL = "/navlink-proxy";
+const GITHUB_RELEASE_API =
+  "https://api.github.com/repos/Silkroad-Developer-Community/Silkroad-NavLink/releases/latest";
 
-async function fetchWithFallback(): Promise<Response> {
-  const urls = [NAVLINK_LOCAL_URL, NAVLINK_PROXY_URL];
-  for (const url of urls) {
-    const res = await fetch(url);
-    if (res.ok) return res;
-  }
-  throw new Error(`Failed to download from all sources`);
+async function fetchFromGitHub(): Promise<Response> {
+  const releaseRes = await fetch(GITHUB_RELEASE_API);
+  if (!releaseRes.ok) throw new Error(`GitHub API error: ${releaseRes.statusText}`);
+  const release = await releaseRes.json();
+  const asset = release.assets?.find((a: any) => a.name === "navigation_linkage.json.gz");
+  if (!asset?.url) throw new Error("navigation_linkage.json.gz asset not found in latest release");
+
+  const assetRes = await fetch(asset.url, {
+    headers: { Accept: "application/octet-stream" },
+  });
+  if (!assetRes.ok) throw new Error(`Failed to download asset: ${assetRes.statusText}`);
+  return assetRes;
 }
 
 export async function getNavlinkData(): Promise<any | null> {
@@ -53,10 +58,10 @@ async function responseToText(response: Response): Promise<string> {
 export async function downloadAndCacheNavlink(
   onProgress: (percent: number, message: string) => void
 ): Promise<any | null> {
-  onProgress(0, "Downloading navigation linkage...");
+  onProgress(0, "Fetching release info from GitHub...");
 
   try {
-    const response = await fetchWithFallback();
+    const response = await fetchFromGitHub();
 
     onProgress(50, "Processing...");
     const text = await responseToText(response);

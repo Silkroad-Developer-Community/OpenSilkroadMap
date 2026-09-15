@@ -25,8 +25,16 @@ let currentMode: EditorMode = "view";
 export let editorEnabled = false;
 export let isDirty = false;
 
+export interface NavlinkWorkingEdge {
+  from: string;
+  to: string;
+  type: string;
+  npc?: string | null;
+  dest?: number | null;
+}
+
 let workingNodes: Record<string, { x: number; y: number; region: number }> = {};
-let workingEdges: Record<string, { from: string; to: string; type: string; npc: string | null; dest: number | null; steps: number | null }> = {};
+let workingEdges: Record<string, NavlinkWorkingEdge> = {};
 
 let selectInteraction: Select | null = null;
 let translateInteraction: Translate | null = null;
@@ -96,6 +104,26 @@ function deepCloneNavlinkData() {
 }
 
 function serializeWorkingData(): any {
+  const cleanedEdges: Record<string, any> = {};
+  for (const [id, edge] of Object.entries(workingEdges)) {
+    if (edge.type === "walk") {
+      cleanedEdges[id] = {
+        from: edge.from,
+        to: edge.to,
+        type: "walk",
+      };
+    } else {
+      const e: Record<string, any> = {
+        from: edge.from,
+        to: edge.to,
+        type: edge.type,
+      };
+      if (edge.npc) e.npc = edge.npc;
+      if (edge.dest !== null && edge.dest !== undefined) e.dest = edge.dest;
+      cleanedEdges[id] = e;
+    }
+  }
+
   return {
     version: navlinkData?.version ?? 1,
     date: navlinkData?.date ?? new Date().toISOString().split("T")[0],
@@ -105,7 +133,7 @@ function serializeWorkingData(): any {
     contributors: navlinkData?.contributors ?? [],
     changelogs: navlinkData?.changelogs ?? [],
     nodes: workingNodes,
-    edges: workingEdges,
+    edges: cleanedEdges,
   };
 }
 
@@ -506,14 +534,11 @@ function setupExtendMode() {
             linkType: "walk",
             isConnection: true,
             isNavlinkEdge: true,
-            npc: null,
-            dest: null,
-            steps: null,
           });
           edgeFeature.setStyle(newEdgeStyle);
           navlinkSource.addFeature(edgeFeature);
         }
-        workingEdges[edgeId] = { from: prevNodeId, to: existingTargetNodeId, type: "walk", npc: null, dest: null, steps: null };
+        workingEdges[edgeId] = { from: prevNodeId, to: existingTargetNodeId, type: "walk" };
         prevNodeId = existingTargetNodeId;
       } else {
         const nodeId = generateNodeId(nx, ny, region);
@@ -542,15 +567,12 @@ function setupExtendMode() {
             linkType: "walk",
             isConnection: true,
             isNavlinkEdge: true,
-            npc: null,
-            dest: null,
-            steps: null,
           });
           edgeFeature.setStyle(newEdgeStyle);
           navlinkSource.addFeature(edgeFeature);
         }
 
-        workingEdges[edgeId] = { from: prevNodeId, to: nodeId, type: "walk", npc: null, dest: null, steps: null };
+        workingEdges[edgeId] = { from: prevNodeId, to: nodeId, type: "walk" };
         prevNodeId = nodeId;
       }
     }
@@ -813,7 +835,6 @@ function reRenderFromWorkingData() {
         isNavlinkEdge: true,
         npc: edge.npc,
         dest: edge.dest,
-        steps: edge.steps,
       });
       if (!navlinkData?.edges?.[generateEdgeId(edge.from, edge.to)]) {
         feature.setStyle(newEdgeStyle);
@@ -997,3 +1018,126 @@ export async function loadCustomFile(file: File): Promise<void> {
     throw new Error(`Failed to load navlink file: ${e}`);
   }
 }
+
+function sroLocalToWorld(region: number, x: number, y: number): { x: number; y: number; region: number } {
+  let r = region < 0 ? region + 65536 : region;
+  if (r < 32768) {
+    const xSec = r & 0xff;
+    const ySec = r >> 8;
+    const secX = xSec + x / 1920;
+    const secY = ySec + y / 1920 - 1;
+    return {
+      x: (secX - 135) * 192,
+      y: (secY - 91) * 192,
+      region: r,
+    };
+  }
+  return { x, y, region: r };
+}
+
+function findOrCreateWorkingNode(
+  wx: number,
+  wy: number,
+  region: number,
+  snapDist = 60
+): { nodeId: string; created: boolean } {
+  const nearest = findNearestWorkingNode(wx, wy, snapDist);
+  if (nearest) {
+    return { nodeId: nearest.nodeId, created: false };
+  }
+  const nodeId = generateNodeId(wx, wy, region);
+  workingNodes[nodeId] = { x: wx, y: wy, region };
+  return { nodeId, created: true };
+}
+
+export function importSingleTeleportLink(
+  src: { codename: string; x: number; y: number; region: number },
+  dst: { name: string; x: number; y: number; region: number; target_id?: number | null },
+  snapDist = 60
+): { edgeId: string; createdNodes: number } {
+  pushEditAction(`Imported teleport ${src.codename} → ${dst.name}`);
+
+  let createdNodes = 0;
+  const srcCoord = sroLocalToWorld(src.region, src.x, src.y);
+  const srcNode = findOrCreateWorkingNode(srcCoord.x, srcCoord.y, srcCoord.region, snapDist);
+  if (srcNode.created) createdNodes++;
+
+  const dstCoord = sroLocalToWorld(dst.region, dst.x, dst.y);
+  const dstNode = findOrCreateWorkingNode(dstCoord.x, dstCoord.y, dstCoord.region, snapDist);
+  if (dstNode.created) createdNodes++;
+
+  const edgeId = generateEdgeId(srcNode.nodeId, dstNode.nodeId);
+  const targetId = dst.target_id ?? null;
+
+  const newEdge: NavlinkWorkingEdge = {
+    from: srcNode.nodeId,
+    to: dstNode.nodeId,
+    type: "teleport",
+  };
+  if (src.codename) newEdge.npc = src.codename;
+  if (targetId !== null && targetId !== undefined) newEdge.dest = targetId;
+
+  workingEdges[edgeId] = newEdge;
+
+  markDirty();
+  reRenderFromWorkingData();
+
+  return { edgeId, createdNodes };
+}
+
+export function importTeleportLinks(
+  teleports: any[],
+  snapDist = 60
+): { added: number; updated: number; createdNodes: number } {
+  pushEditAction(`Imported teleport batch`);
+
+  let added = 0;
+  let updated = 0;
+  let createdNodes = 0;
+
+  for (const tp of teleports) {
+    const codename = tp.codename || tp.name;
+    const dests = tp.teleport;
+    if (!Array.isArray(dests) || dests.length === 0) continue;
+
+    const srcCoord = sroLocalToWorld(tp.region, tp.x, tp.y);
+    const src = findOrCreateWorkingNode(srcCoord.x, srcCoord.y, srcCoord.region, snapDist);
+    if (src.created) createdNodes++;
+
+    for (const dst of dests) {
+      const targetId = dst.target_id ?? null;
+      const dstCoord = sroLocalToWorld(dst.region, dst.x, dst.y);
+      const target = findOrCreateWorkingNode(dstCoord.x, dstCoord.y, dstCoord.region, snapDist);
+      if (target.created) createdNodes++;
+
+      const edgeId = generateEdgeId(src.nodeId, target.nodeId);
+      const existing = workingEdges[edgeId];
+      if (existing) {
+        if (existing.type !== "teleport" || existing.npc !== codename || existing.dest !== targetId) {
+          existing.type = "teleport";
+          if (codename) existing.npc = codename;
+          if (targetId !== null && targetId !== undefined) existing.dest = targetId;
+          updated++;
+        }
+      } else {
+        const edgeObj: NavlinkWorkingEdge = {
+          from: src.nodeId,
+          to: target.nodeId,
+          type: "teleport",
+        };
+        if (codename) edgeObj.npc = codename;
+        if (targetId !== null && targetId !== undefined) edgeObj.dest = targetId;
+        workingEdges[edgeId] = edgeObj;
+        added++;
+      }
+    }
+  }
+
+  if (added > 0 || updated > 0 || createdNodes > 0) {
+    markDirty();
+    reRenderFromWorkingData();
+  }
+
+  return { added, updated, createdNodes };
+}
+
