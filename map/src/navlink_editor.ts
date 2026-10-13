@@ -190,10 +190,22 @@ function pushEditAction(description: string): void {
 }
 
 export function revertEditAction(actionId: string): void {
-  const idx = editActions.findIndex(a => a.id === actionId);
+  const idx = editActions.findIndex((a) => a.id === actionId);
   if (idx < 0) return;
   const before = editActions[idx].before;
-  console.log("[revert] actionId:", actionId, "idx:", idx, "total:", editActions.length, "slicing from", idx + 1, "to end —", "new len:", editActions.length - (idx + 1));
+  console.log(
+    "[revert] actionId:",
+    actionId,
+    "idx:",
+    idx,
+    "total:",
+    editActions.length,
+    "slicing from",
+    idx + 1,
+    "to end —",
+    "new len:",
+    editActions.length - (idx + 1),
+  );
   workingNodes = JSON.parse(JSON.stringify(before.nodes));
   workingEdges = JSON.parse(JSON.stringify(before.edges));
   editActions = editActions.slice(idx + 1);
@@ -230,7 +242,12 @@ function nodeIdToMapCoords(nodeId: string): number[] | null {
   return null;
 }
 
-function findNearestWorkingNode(x: number, y: number, threshold: number, excludeNodeId?: string): { nodeId: string; x: number; y: number; region: number } | null {
+function findNearestWorkingNode(
+  x: number,
+  y: number,
+  threshold: number,
+  excludeNodeId?: string,
+): { nodeId: string; x: number; y: number; region: number } | null {
   let best: { nodeId: string; x: number; y: number; region: number; dist: number } | null = null;
   for (const [nodeId, node] of Object.entries(workingNodes)) {
     if (nodeId === excludeNodeId) continue;
@@ -257,11 +274,17 @@ function removePreview() {
 
 function updateExtendPreview(event: MapBrowserEvent<any>, hoveredAtPixel: any) {
   const sourceNode = workingNodes[extendSourceNodeId!];
-  if (!sourceNode) { removePreview(); return; }
+  if (!sourceNode) {
+    removePreview();
+    return;
+  }
 
   const mapCoords = event.coordinate;
   const sro = convertMapToSRO(mapCoords[0], mapCoords[1], currentLayerKey);
-  if (!sro) { removePreview(); return; }
+  if (!sro) {
+    removePreview();
+    return;
+  }
 
   let targetX: number;
   let targetY: number;
@@ -272,7 +295,12 @@ function updateExtendPreview(event: MapBrowserEvent<any>, hoveredAtPixel: any) {
     targetY = hoveredAtPixel.get("y") as number;
     targetRegion = hoveredAtPixel.get("region") as number;
     snappedToNode = hoveredAtPixel.get("nodeId") as string;
-    console.log("[snap] pixel hit node:", snappedToNode, "isNew:", !!(workingNodes[snappedToNode] && !navlinkData?.edges?.[`${snappedToNode}_dummy`]));
+    console.log(
+      "[snap] pixel hit node:",
+      snappedToNode,
+      "isNew:",
+      !!(workingNodes[snappedToNode] && !navlinkData?.edges?.[`${snappedToNode}_dummy`]),
+    );
   } else {
     const sRegion = sro.region < 0 ? sro.region + 65536 : sro.region;
     const nearest = findNearestWorkingNode(sro.x, sro.y, SNAP_THRESHOLD, extendSourceNodeId!);
@@ -281,7 +309,12 @@ function updateExtendPreview(event: MapBrowserEvent<any>, hoveredAtPixel: any) {
       targetY = nearest.y;
       targetRegion = nearest.region;
       snappedToNode = nearest.nodeId;
-      console.log("[snap] spatial snap to:", nearest.nodeId, "dist:", Math.sqrt((nearest.x - sro.x) ** 2 + (nearest.y - sro.y) ** 2).toFixed(1));
+      console.log(
+        "[snap] spatial snap to:",
+        nearest.nodeId,
+        "dist:",
+        Math.sqrt((nearest.x - sro.x) ** 2 + (nearest.y - sro.y) ** 2).toFixed(1),
+      );
     } else {
       targetX = sro.x;
       targetY = sro.y;
@@ -293,17 +326,23 @@ function updateExtendPreview(event: MapBrowserEvent<any>, hoveredAtPixel: any) {
   const dx = targetX - sourceNode.x;
   const dy = targetY - sourceNode.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  if (distance < 1) { removePreview(); return; }
+  if (distance < 1) {
+    removePreview();
+    return;
+  }
 
   const nSegments = Math.ceil(distance / SEGMENT_LENGTH);
   const sourceCoords = nodeIdToMapCoords(extendSourceNodeId!);
-  if (!sourceCoords) { removePreview(); return; }
+  if (!sourceCoords) {
+    removePreview();
+    return;
+  }
 
   const region = sourceNode.region;
   const points: number[][] = [sourceCoords];
   const nodeCoords: number[][] = [];
   for (let i = 1; i <= nSegments; i++) {
-    const t = Math.min(i * SEGMENT_LENGTH / distance, 1);
+    const t = Math.min((i * SEGMENT_LENGTH) / distance, 1);
     const nx = sourceNode.x + dx * t;
     const ny = sourceNode.y + dy * t;
     const coordRegion = i === nSegments && snappedToNode ? targetRegion : region;
@@ -459,7 +498,17 @@ function setupExtendMode() {
         if (!sro) return;
         const region = sro.region < 0 ? sro.region + 65536 : sro.region;
         const nodeId = generateNodeId(sro.x, sro.y, region);
-        console.log("[extend] created new node:", nodeId, "at sro:", sro.x.toFixed(0), sro.y.toFixed(0), "region:", region, "coords:", navlinkToMapCoords(sro.x, sro.y, region));
+        console.log(
+          "[extend] created new node:",
+          nodeId,
+          "at sro:",
+          sro.x.toFixed(0),
+          sro.y.toFixed(0),
+          "region:",
+          region,
+          "coords:",
+          navlinkToMapCoords(sro.x, sro.y, region),
+        );
         pushEditAction(`Created node at ${Math.floor(sro.x)}, ${Math.floor(sro.y)}`);
         workingNodes[nodeId] = { x: sro.x, y: sro.y, region };
         const coords = navlinkToMapCoords(sro.x, sro.y, region);
@@ -501,7 +550,10 @@ function setupExtendMode() {
     }
 
     const sourceNode = workingNodes[extendSourceNodeId];
-    if (!sourceNode) { clearExtendSource(); return; }
+    if (!sourceNode) {
+      clearExtendSource();
+      return;
+    }
 
     const dx = targetX - sourceNode.x;
     const dy = targetY - sourceNode.y;
@@ -518,7 +570,7 @@ function setupExtendMode() {
     }
 
     for (let i = 1; i <= nSegments; i++) {
-      const t = Math.min(i * SEGMENT_LENGTH / distance, 1);
+      const t = Math.min((i * SEGMENT_LENGTH) / distance, 1);
       const nx = sourceNode.x + dx * t;
       const ny = sourceNode.y + dy * t;
 
@@ -629,11 +681,17 @@ function setupMoveMode() {
   translateInteraction.on("translateend", (event) => {
     if (!movingNodeId) return;
     const feature = event.features.item(0);
-    if (!feature) { movingNodeId = null; return; }
+    if (!feature) {
+      movingNodeId = null;
+      return;
+    }
 
     const coords = (feature.getGeometry() as Point).getCoordinates();
     const sro = convertMapToSRO(coords[0], coords[1], currentLayerKey);
-    if (!sro) { movingNodeId = null; return; }
+    if (!sro) {
+      movingNodeId = null;
+      return;
+    }
 
     const region = sro.region < 0 ? sro.region + 65536 : sro.region;
     feature.set("x", sro.x);
@@ -642,7 +700,9 @@ function setupMoveMode() {
 
     if (workingNodes[movingNodeId]) {
       const oldNode = workingNodes[movingNodeId];
-      pushEditAction(`Moved node from (${Math.floor(oldNode.x)}, ${Math.floor(oldNode.y)}) to (${Math.floor(sro.x)}, ${Math.floor(sro.y)})`);
+      pushEditAction(
+        `Moved node from (${Math.floor(oldNode.x)}, ${Math.floor(oldNode.y)}) to (${Math.floor(sro.x)}, ${Math.floor(sro.y)})`,
+      );
       workingNodes[movingNodeId] = { x: sro.x, y: sro.y, region };
     }
 
@@ -900,7 +960,13 @@ export interface CheckpointEntry {
   newTeleportCount: number;
 }
 
-function countCheckpointTypes(): { walkEdgeCount: number; teleportEdgeCount: number; nodeCount: number; newWalkCount: number; newTeleportCount: number } {
+function countCheckpointTypes(): {
+  walkEdgeCount: number;
+  teleportEdgeCount: number;
+  nodeCount: number;
+  newWalkCount: number;
+  newTeleportCount: number;
+} {
   let walkEdgeCount = 0;
   let teleportEdgeCount = 0;
   let newWalkCount = 0;
@@ -1035,7 +1101,7 @@ function findOrCreateWorkingNode(
   wx: number,
   wy: number,
   region: number,
-  snapDist = 60
+  snapDist = 60,
 ): { nodeId: string; created: boolean } {
   const nearest = findNearestWorkingNode(wx, wy, snapDist);
   if (nearest) {
@@ -1049,7 +1115,7 @@ function findOrCreateWorkingNode(
 export function importSingleTeleportLink(
   src: { codename: string; x: number; y: number; region: number },
   dst: { name: string; x: number; y: number; region: number; target_id?: number | null },
-  snapDist = 60
+  snapDist = 60,
 ): { edgeId: string; createdNodes: number } {
   pushEditAction(`Imported teleport ${src.codename} → ${dst.name}`);
 
@@ -1083,7 +1149,7 @@ export function importSingleTeleportLink(
 
 export function importTeleportLinks(
   teleports: any[],
-  snapDist = 60
+  snapDist = 60,
 ): { added: number; updated: number; createdNodes: number } {
   pushEditAction(`Imported teleport batch`);
 

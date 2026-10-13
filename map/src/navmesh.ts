@@ -16,7 +16,6 @@ interface DungeonNavmeshFloor {
 }
 
 type DungeonNavmeshManifest = Record<string, DungeonNavmeshFloor[]>;
-const DUNGEON_NAVMESH_Y_ORIGIN = 127.5;
 
 export let navmeshManifest: DungeonNavmeshManifest | null = null;
 let currentNavmeshLayer: any = null;
@@ -88,8 +87,8 @@ function createDungeonNavmeshLayer(floorInfo: DungeonNavmeshFloor) {
       const span = 256 / 2 ** z;
       const minX = Math.floor((128 + floorInfo.minX / 1920) / span);
       const maxX = Math.ceil((128 + floorInfo.maxX / 1920) / span) - 1;
-      const minY = Math.floor((DUNGEON_NAVMESH_Y_ORIGIN + floorInfo.minZ / 1920) / span);
-      const maxY = Math.ceil((DUNGEON_NAVMESH_Y_ORIGIN + floorInfo.maxZ / 1920) / span) - 1;
+      const minY = Math.floor((127 + floorInfo.minZ / 1920) / span) + 1;
+      const maxY = Math.ceil((127 + floorInfo.maxZ / 1920) / span);
       if (tileX < minX || tileX > maxX || tileY < minY || tileY > maxY) return undefined;
       return floorInfo.archive;
     },

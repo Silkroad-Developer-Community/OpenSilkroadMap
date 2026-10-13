@@ -1,204 +1,243 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenSilkroadMap - Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenSilkroadMap - Viewer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <link rel="stylesheet" href="./src/style.css" />
-</head>
+  <body class="bg-surface-dark text-text-primary font-sans">
+    <div id="map" class="map"></div>
 
-<body class="bg-surface-dark text-text-primary font-sans">
-  <div id="map" class="map"></div>
-
-  <div class="material-panel layer-panel">
-    <div class="mb-4 relative">
-      <div class="panel-header mb-2">
-        <span class="material-icons text-accent-teal">search</span>
-        <h2>Search Objects</h2>
+    <div class="material-panel layer-panel">
+      <div class="mb-4 relative">
+        <div class="panel-header mb-2">
+          <span class="material-icons text-accent-teal">search</span>
+          <h2>Search Objects</h2>
+        </div>
+        <input
+          type="text"
+          id="search-input"
+          class="material-select"
+          placeholder="Search NPC or Teleport..."
+          autocomplete="off"
+        />
+        <div
+          id="search-results"
+          class="hidden absolute top-full left-0 right-0 bg-surface-light border border-[#444] rounded overflow-y-auto z-50 shadow-lg"
+        ></div>
       </div>
-      <input type="text" id="search-input" class="material-select" placeholder="Search NPC or Teleport..."
-        autocomplete="off" />
-      <div id="search-results"
-        class="hidden absolute top-full left-0 right-0 bg-surface-light border border-[#444] rounded overflow-y-auto z-50 shadow-lg">
+
+      <div class="panel-header">
+        <span class="material-icons">layers</span>
+        <h2>Map Layer</h2>
       </div>
-    </div>
+      <div class="select-container">
+        <select id="layer-select" class="material-select">
+          <option value="world">World Map</option>
+          <optgroup label="Donwhang Stone Cave">
+            <option value="32769_1">Donwhang Dungeon B1 (Lv.61~64)</option>
+            <option value="32769_2">Donwhang Dungeon B2 (Lv.64~66)</option>
+            <option value="32769_3">Donwhang Dungeon B3 (Lv.65~68)</option>
+            <option value="32769_4">Donwhang Dungeon B4 (Lv.69~70)</option>
+          </optgroup>
+          <optgroup label="Tomb of Qin-Shi">
+            <option value="32775">Qin-Shi Tomb B1 (Lv.81~85)</option>
+            <option value="32774">Qin-Shi Tomb B2 (Lv.86~90)</option>
+            <option value="32773">Qin-Shi Tomb B3 (Lv.90~95)</option>
+            <option value="32772">Qin-Shi Tomb B4 (Lv.96~99)</option>
+            <option value="32771">Qin-Shi Tomb B5</option>
+            <option value="32770">Qin-Shi Tomb B6</option>
+          </optgroup>
+          <optgroup label="Other Areas">
+            <option value="32784">Temple</option>
+            <option value="32786">Flame Mountain</option>
+            <option value="32785">Cave of Meditation</option>
+          </optgroup>
+        </select>
+      </div>
 
-    <div class="panel-header">
-      <span class="material-icons">layers</span>
-      <h2>Map Layer</h2>
-    </div>
-    <div class="select-container">
-      <select id="layer-select" class="material-select">
-        <option value="world">World Map</option>
-        <optgroup label="Donwhang Stone Cave">
-          <option value="32769_1">Donwhang Dungeon B1 (Lv.61~64)</option>
-          <option value="32769_2">Donwhang Dungeon B2 (Lv.64~66)</option>
-          <option value="32769_3">Donwhang Dungeon B3 (Lv.65~68)</option>
-          <option value="32769_4">Donwhang Dungeon B4 (Lv.69~70)</option>
-        </optgroup>
-        <optgroup label="Tomb of Qin-Shi">
-          <option value="32775">Qin-Shi Tomb B1 (Lv.81~85)</option>
-          <option value="32774">Qin-Shi Tomb B2 (Lv.86~90)</option>
-          <option value="32773">Qin-Shi Tomb B3 (Lv.90~95)</option>
-          <option value="32772">Qin-Shi Tomb B4 (Lv.96~99)</option>
-          <option value="32771">Qin-Shi Tomb B5</option>
-          <option value="32770">Qin-Shi Tomb B6</option>
-        </optgroup>
-        <optgroup label="Other Areas">
-          <option value="32784">Temple</option>
-          <option value="32786">Flame Mountain</option>
-          <option value="32785">Cave of Meditation</option>
-        </optgroup>
-      </select>
-    </div>
+      <hr />
+      <div class="flex items-center gap-2 mt-3">
+        <input type="checkbox" id="maptiles-toggle" checked class="cursor-pointer accent-[#bb86fc]" />
+        <label for="maptiles-toggle" class="text-text-primary cursor-pointer text-sm select-none">Show Map Tiles</label>
+      </div>
+      <div class="flex items-center gap-2 mt-1.5">
+        <input type="checkbox" id="navmesh-toggle" class="cursor-pointer accent-[#bb86fc]" />
+        <label for="navmesh-toggle" class="text-text-primary cursor-pointer text-sm select-none"
+          >Show NavMesh (Disabled when zoom≤6)</label
+        >
+      </div>
+      <div class="flex items-center gap-2 mt-1.5">
+        <input type="checkbox" id="region-info-toggle" class="cursor-pointer accent-[#bb86fc]" />
+        <label for="region-info-toggle" class="text-text-primary cursor-pointer text-sm select-none"
+          >Show Region Info</label
+        >
+      </div>
 
-    <hr>
-    <div class="flex items-center gap-2 mt-3">
-      <input type="checkbox" id="maptiles-toggle" checked class="cursor-pointer accent-[#bb86fc]" />
-      <label for="maptiles-toggle" class="text-text-primary cursor-pointer text-sm select-none">Show Map Tiles</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1.5">
-      <input type="checkbox" id="navmesh-toggle" class="cursor-pointer accent-[#bb86fc]" />
-      <label for="navmesh-toggle" class="text-text-primary cursor-pointer text-sm select-none">Show NavMesh (Disabled
-        when zoom≤6)</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1.5">
-      <input type="checkbox" id="region-info-toggle" class="cursor-pointer accent-[#bb86fc]" />
-      <label for="region-info-toggle" class="text-text-primary cursor-pointer text-sm select-none">Show Region
-        Info</label>
-    </div>
-
-    <hr>
-    <div class="flex items-center justify-between">
-      <span class="text-[11px] font-medium text-text-secondary uppercase tracking-wide">Teleport Connections</span>
-      <button id="toggle-all-conn"
-        class="bg-none border-none text-accent-purple text-[11px] cursor-pointer p-0 font-medium outline-none hover:brightness-110">
-        Toggle All
-      </button>
-    </div>
-    <div class="flex items-center gap-2 mt-1.5">
-      <input type="checkbox" id="toggle-conn-0" class="cursor-pointer accent-[#bb86fc]" />
-      <label for="toggle-conn-0" class="text-text-primary cursor-pointer text-[13px] select-none">Dimensional
-        Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-1" class="cursor-pointer accent-[#ff9100]" />
-      <label for="toggle-conn-1" class="text-text-primary cursor-pointer text-[13px] select-none">Fortress Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-2" class="cursor-pointer accent-[#00e676]" />
-      <label for="toggle-conn-2" class="text-text-primary cursor-pointer text-[13px] select-none">Revival Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-3" class="cursor-pointer accent-[#00e5ff]" />
-      <label for="toggle-conn-3" class="text-text-primary cursor-pointer text-[13px] select-none">Glory Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-4" class="cursor-pointer accent-[#ffd740]" />
-      <label for="toggle-conn-4" class="text-text-primary cursor-pointer text-[13px] select-none">Small Fortress
-        Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-5" class="cursor-pointer accent-[#ff5252]" />
-      <label for="toggle-conn-5" class="text-text-primary cursor-pointer text-[13px] select-none">Teleport Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-6" class="cursor-pointer accent-[#1de9b6]" />
-      <label for="toggle-conn-6" class="text-text-primary cursor-pointer text-[13px] select-none">Tahomet Gate</label>
-    </div>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="toggle-conn-7" class="cursor-pointer accent-[#ff4081]" />
-      <label for="toggle-conn-7" class="text-text-primary cursor-pointer text-[13px] select-none">NPC Teleport</label>
-    </div>
-    <hr>
-    <div class="flex items-center gap-2 mt-1">
-      <input type="checkbox" id="precache-toggle" class="cursor-pointer accent-[#bb86fc]" />
-      <label for="precache-toggle" class="text-text-primary cursor-pointer text-sm select-none">Precache PMTiles</label>
-    </div>
-    <div id="precache-progress" class="hidden text-xs text-text-secondary mt-1.5 text-center">
-      Caching: <span id="precache-percent">0%</span> (<span id="precache-count">0/0</span>)
-    </div>
-
-    <!-- Drawing Tools Section -->
-    <hr>
-
-    <div class="flex items-center gap-2 mb-2">
-      <input type="checkbox" id="editor-toggle" class="cursor-pointer accent-[#ff7597]" />
-      <label for="editor-toggle" class="text-text-primary cursor-pointer text-sm select-none">Enable NavLink Edits</label>
-    </div>
-
-    <div id="editor-toolbar" class="hidden">
-      <div class="flex gap-1 flex-wrap mb-2">
+      <hr />
+      <div class="flex items-center justify-between">
+        <span class="text-[11px] font-medium text-text-secondary uppercase tracking-wide">Teleport Connections</span>
         <button
-          class="editor-mode-btn flex-1 min-w-[44px] px-1 py-1.5 border border-[#444] rounded bg-surface-light text-text-secondary cursor-pointer text-xs transition-all duration-150"
-          data-mode="extend">
-          Extend <span class="opacity-60 text-[10px]">E</span>
-        </button>
-        <button
-          class="editor-mode-btn flex-1 min-w-[44px] px-1 py-1.5 border border-[#444] rounded bg-surface-light text-text-secondary cursor-pointer text-xs transition-all duration-150"
-          data-mode="move">
-          Move <span class="opacity-60 text-[10px]">S</span>
-        </button>
-        <button
-          class="editor-mode-btn flex-1 min-w-[44px] px-1 py-1.5 border border-[#444] rounded bg-surface-light text-text-secondary cursor-pointer text-xs transition-all duration-150"
-          data-mode="delete">
-          Del <span class="opacity-60 text-[10px]">D</span>
+          id="toggle-all-conn"
+          class="bg-none border-none text-accent-purple text-[11px] cursor-pointer p-0 font-medium outline-none hover:brightness-110"
+        >
+          Toggle All
         </button>
       </div>
-      <div id="editor-status" class="text-xs text-text-secondary mb-2 min-h-[16px]">
-        Click → click map to extend path (50m segments) · Esc to idle
+      <div class="flex items-center gap-2 mt-1.5">
+        <input type="checkbox" id="toggle-conn-0" class="cursor-pointer accent-[#bb86fc]" />
+        <label for="toggle-conn-0" class="text-text-primary cursor-pointer text-[13px] select-none"
+          >Dimensional Gate</label
+        >
       </div>
-      <div class="flex gap-1.5 flex-wrap">
-        <button id="editor-save-btn"
-          class="material-select flex-1 bg-accent-teal text-surface-dark font-bold border-none">Save
-          Checkpoint</button>
-        <button id="editor-export-btn"
-          class="material-select flex-1 bg-accent-teal text-surface-dark font-bold border-none">Export JSON</button>
-        <button id="editor-reset-btn"
-          class="material-select flex-1 bg-[#cf6679] text-surface-dark font-bold border-none">Reset</button>
-        <button id="editor-import-btn"
-          class="material-select flex-1 bg-accent-purple text-surface-dark font-bold border-none">Import…</button>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-1" class="cursor-pointer accent-[#ff9100]" />
+        <label for="toggle-conn-1" class="text-text-primary cursor-pointer text-[13px] select-none"
+          >Fortress Gate</label
+        >
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-2" class="cursor-pointer accent-[#00e676]" />
+        <label for="toggle-conn-2" class="text-text-primary cursor-pointer text-[13px] select-none">Revival Gate</label>
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-3" class="cursor-pointer accent-[#00e5ff]" />
+        <label for="toggle-conn-3" class="text-text-primary cursor-pointer text-[13px] select-none">Glory Gate</label>
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-4" class="cursor-pointer accent-[#ffd740]" />
+        <label for="toggle-conn-4" class="text-text-primary cursor-pointer text-[13px] select-none"
+          >Small Fortress Gate</label
+        >
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-5" class="cursor-pointer accent-[#ff5252]" />
+        <label for="toggle-conn-5" class="text-text-primary cursor-pointer text-[13px] select-none"
+          >Teleport Gate</label
+        >
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-6" class="cursor-pointer accent-[#1de9b6]" />
+        <label for="toggle-conn-6" class="text-text-primary cursor-pointer text-[13px] select-none">Tahomet Gate</label>
+      </div>
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="toggle-conn-7" class="cursor-pointer accent-[#ff4081]" />
+        <label for="toggle-conn-7" class="text-text-primary cursor-pointer text-[13px] select-none">NPC Teleport</label>
+      </div>
+      <hr />
+      <div class="flex items-center gap-2 mt-1">
+        <input type="checkbox" id="precache-toggle" class="cursor-pointer accent-[#bb86fc]" />
+        <label for="precache-toggle" class="text-text-primary cursor-pointer text-sm select-none"
+          >Precache PMTiles</label
+        >
+      </div>
+      <div id="precache-progress" class="hidden text-xs text-text-secondary mt-1.5 text-center">
+        Caching: <span id="precache-percent">0%</span> (<span id="precache-count">0/0</span>)
+      </div>
+
+      <!-- Drawing Tools Section -->
+      <hr />
+
+      <div class="flex items-center gap-2 mb-2">
+        <input type="checkbox" id="editor-toggle" class="cursor-pointer accent-[#ff7597]" />
+        <label for="editor-toggle" class="text-text-primary cursor-pointer text-sm select-none"
+          >Enable NavLink Edits</label
+        >
+      </div>
+
+      <div id="editor-toolbar" class="hidden">
+        <div class="flex gap-1 flex-wrap mb-2">
+          <button
+            class="editor-mode-btn flex-1 min-w-[44px] px-1 py-1.5 border border-[#444] rounded bg-surface-light text-text-secondary cursor-pointer text-xs transition-all duration-150"
+            data-mode="extend"
+          >
+            Extend <span class="opacity-60 text-[10px]">E</span>
+          </button>
+          <button
+            class="editor-mode-btn flex-1 min-w-[44px] px-1 py-1.5 border border-[#444] rounded bg-surface-light text-text-secondary cursor-pointer text-xs transition-all duration-150"
+            data-mode="move"
+          >
+            Move <span class="opacity-60 text-[10px]">S</span>
+          </button>
+          <button
+            class="editor-mode-btn flex-1 min-w-[44px] px-1 py-1.5 border border-[#444] rounded bg-surface-light text-text-secondary cursor-pointer text-xs transition-all duration-150"
+            data-mode="delete"
+          >
+            Del <span class="opacity-60 text-[10px]">D</span>
+          </button>
+        </div>
+        <div id="editor-status" class="text-xs text-text-secondary mb-2 min-h-[16px]">
+          Click → click map to extend path (50m segments) · Esc to idle
+        </div>
+        <div class="flex gap-1.5 flex-wrap">
+          <button
+            id="editor-save-btn"
+            class="material-select flex-1 bg-accent-teal text-surface-dark font-bold border-none"
+          >
+            Save Checkpoint
+          </button>
+          <button
+            id="editor-export-btn"
+            class="material-select flex-1 bg-accent-teal text-surface-dark font-bold border-none"
+          >
+            Export JSON
+          </button>
+          <button
+            id="editor-reset-btn"
+            class="material-select flex-1 bg-[#cf6679] text-surface-dark font-bold border-none"
+          >
+            Reset
+          </button>
+          <button
+            id="editor-import-btn"
+            class="material-select flex-1 bg-accent-purple text-surface-dark font-bold border-none"
+          >
+            Import…
+          </button>
+        </div>
+      </div>
+      <input type="file" id="editor-file-input" accept=".json,.json.gz" class="hidden" />
+
+      <hr />
+
+      <div class="panel-header cursor-pointer" id="history-toggle">
+        <span class="material-icons text-accent-purple">history</span>
+        <h2>Edit History</h2>
+        <span
+          class="material-icons collapse-icon ml-auto text-text-secondary text-[20px] transition-transform duration-200"
+          >expand_less</span
+        >
+      </div>
+      <div id="history-body">
+        <div class="text-xs text-text-secondary mb-1 font-medium">Edit Log</div>
+        <div id="edit-actions-list"></div>
+        <div id="history-empty" class="text-xs text-text-secondary text-center py-4">No edits yet</div>
+        <hr />
+        <div class="text-xs text-text-secondary mb-1 font-medium">Checkpoints</div>
+        <div id="checkpoints-list"></div>
+        <div id="checkpoints-empty" class="text-xs text-text-secondary text-center py-4">No checkpoints saved</div>
       </div>
     </div>
-    <input type="file" id="editor-file-input" accept=".json,.json.gz" class="hidden" />
 
-    <hr>
-
-    <div class="panel-header cursor-pointer" id="history-toggle">
-      <span class="material-icons text-accent-purple">history</span>
-      <h2>Edit History</h2>
-      <span class="material-icons collapse-icon ml-auto text-text-secondary text-[20px] transition-transform duration-200">expand_less</span>
+    <div class="material-panel coords-panel">
+      <div class="coord-item">
+        <span class="material-icons text-accent-teal">gps_fixed</span>
+        <span class="label">SRO Coords:</span>
+        <span id="coords-val" class="value">X: 0, Y: 0, R: 0</span>
+      </div>
     </div>
-    <div id="history-body">
-      <div class="text-xs text-text-secondary mb-1 font-medium">Edit Log</div>
-      <div id="edit-actions-list"></div>
-      <div id="history-empty" class="text-xs text-text-secondary text-center py-4">No edits yet</div>
-      <hr>
-      <div class="text-xs text-text-secondary mb-1 font-medium">Checkpoints</div>
-      <div id="checkpoints-list"></div>
-      <div id="checkpoints-empty" class="text-xs text-text-secondary text-center py-4">No checkpoints saved</div>
+
+    <div id="popup" class="ol-popup">
+      <a href="#" id="popup-closer" class="ol-popup-closer">&times;</a>
+      <div id="popup-content"></div>
     </div>
-  </div>
 
-  <div class="material-panel coords-panel">
-    <div class="coord-item">
-      <span class="material-icons text-accent-teal">gps_fixed</span>
-      <span class="label">SRO Coords:</span>
-      <span id="coords-val" class="value">X: 0, Y: 0, R: 0</span>
-    </div>
-  </div>
-
-  <div id="popup" class="ol-popup">
-    <a href="#" id="popup-closer" class="ol-popup-closer">&times;</a>
-    <div id="popup-content"></div>
-  </div>
-
-  <script type="module" src="./src/main.ts"></script>
-</body>
-
+    <script type="module" src="./src/main.ts"></script>
+  </body>
 </html>

@@ -86,7 +86,6 @@ BASE_ZOOM = 8
 MIN_ZOOM = 3
 MAX_ZOOM = 9
 WEBP_QUALITY = 80
-DUNGEON_NAVMESH_Y_ORIGIN = 127.5
 
 BASE_DIR = os.path.join("map", "public", "assets", "img", "silkroad", "minimap")
 DUNGEON_DIR = os.path.join(BASE_DIR, "d")
@@ -1266,15 +1265,15 @@ def process_world_navmesh(data_dir, out_dir, obj_index):
 def dungeon_navmesh_tiles(img, min_x, min_z, max_x, max_z, zoom):
     map_min_x = 128 + min_x / 1920
     map_max_x = 128 + max_x / 1920
-    map_min_y = DUNGEON_NAVMESH_Y_ORIGIN + min_z / 1920
-    map_max_y = DUNGEON_NAVMESH_Y_ORIGIN + max_z / 1920
+    map_min_y = 127 + min_z / 1920
+    map_max_y = 127 + max_z / 1920
     span = 256 / (2**zoom)
     scale_x = img.width / (map_max_x - map_min_x)
     scale_y = img.height / (map_max_y - map_min_y)
     min_tile_x = math.floor(map_min_x / span)
     max_tile_x = math.ceil(map_max_x / span) - 1
-    min_tile_y = math.floor(map_min_y / span)
-    max_tile_y = math.ceil(map_max_y / span) - 1
+    min_tile_y = math.floor(map_min_y / span) + 1
+    max_tile_y = math.ceil(map_max_y / span)
     pixels_per_map_unit = 2**zoom
 
     for tile_x in range(min_tile_x, max_tile_x + 1):
@@ -1288,7 +1287,7 @@ def dungeon_navmesh_tiles(img, min_x, min_z, max_x, max_z, zoom):
                     (tile_x * span - map_min_x) * scale_x,
                     0,
                     scale_y / pixels_per_map_unit,
-                    (map_max_y - (tile_y + 1) * span) * scale_y,
+                    (map_max_y - tile_y * span) * scale_y,
                 ),
                 resample=Image.Resampling.BICUBIC,
                 fillcolor=(0, 0, 0, 0),

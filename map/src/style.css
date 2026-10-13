@@ -66,7 +66,9 @@ body {
 
 .material-select {
   @apply bg-[#2d2d2d] border border-[#444] rounded text-text-primary font-sans cursor-pointer text-sm outline-none w-full px-3 py-2.5;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .material-select:focus {
@@ -121,7 +123,10 @@ body {
 .ol-popup {
   @apply bg-[#1e1e1e] border border-[#444] rounded text-text-primary text-sm;
   bottom: 12px;
-  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2), 0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0 6px 10px 0 rgba(0, 0, 0, 0.14),
+    0 1px 18px 0 rgba(0, 0, 0, 0.12);
   left: -50px;
   min-width: 220px;
   padding: 16px;
@@ -232,7 +237,9 @@ body {
 .saved-navlink-item {
   @apply bg-[#242424] border border-[#333] rounded text-[#c0c0c0] cursor-pointer text-xs font-mono mb-1 px-2 py-1.5;
   user-select: none;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 
 .saved-navlink-item:hover {
