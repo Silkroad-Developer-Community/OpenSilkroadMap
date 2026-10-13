@@ -9,8 +9,8 @@ import Translate from "ol/interaction/Translate";
 import { currentLayerKey } from "./map";
 import { convertMapToSRO } from "./coord";
 import { PMTilesDB } from "./pmtiles_db";
-import { navlinkData, decompressGzipBufferToText } from "./navlink";
-import { navlinkSource, navlinkLayer, updateNavlinkViz } from "./navlink_viz";
+import { navlinkData, decompressGzipBufferToText, setNavlinkData } from "./navlink";
+import { navlinkSource, navlinkLayer } from "./navlink_viz";
 import { getDungeonFloorKey } from "./navmesh";
 
 const EDITS_DB_KEY = "navlink_edits";
@@ -753,12 +753,6 @@ export function initEditor(map: Map) {
   mapInstance = map;
 }
 
-export async function refreshEditorData() {
-  deepCloneNavlinkData();
-  await loadEditsFromDB();
-  reRenderFromWorkingData();
-}
-
 export function setEditorEnabled(enabled: boolean) {
   if (enabled === editorEnabled) return;
 
@@ -779,7 +773,8 @@ export function setEditorEnabled(enabled: boolean) {
     extendSourceFeature = null;
     workingNodes = {};
     workingEdges = {};
-    updateNavlinkViz(currentLayerKey);
+    navlinkSource.clear();
+    navlinkLayer.setVisible(false);
   }
 }
 
@@ -873,8 +868,8 @@ export async function resetEdits() {
   isDirty = false;
   clearEditActions();
   await PMTilesDB.delete(EDITS_DB_KEY);
-  workingNodes = JSON.parse(JSON.stringify(navlinkData.nodes || {}));
-  workingEdges = JSON.parse(JSON.stringify(navlinkData.edges || {}));
+  workingNodes = JSON.parse(JSON.stringify(navlinkData?.nodes || {}));
+  workingEdges = JSON.parse(JSON.stringify(navlinkData?.edges || {}));
   reRenderFromWorkingData();
   if (onChangeCallback) onChangeCallback();
 }
@@ -1007,6 +1002,7 @@ export async function loadCustomFile(file: File): Promise<void> {
       throw new Error("Invalid navlink file: missing nodes or edges");
     }
 
+    setNavlinkData(data);
     workingNodes = JSON.parse(JSON.stringify(data.nodes));
     workingEdges = JSON.parse(JSON.stringify(data.edges));
     isDirty = true;
@@ -1140,4 +1136,3 @@ export function importTeleportLinks(
 
   return { added, updated, createdNodes };
 }
-

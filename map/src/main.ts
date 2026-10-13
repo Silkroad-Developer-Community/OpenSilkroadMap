@@ -23,8 +23,6 @@ import { convertSROToMap } from "./coord";
 import { TELEPORT_TYPES } from "./styles";
 import { PMTilesDB } from "./pmtiles_db";
 import { assetUrl } from "./asset_url";
-import { getNavlinkData, downloadAndCacheNavlink } from "./navlink";
-import { navlinkLayer, updateNavlinkViz } from "./navlink_viz";
 import {
   initEditor,
   setEditorEnabled,
@@ -36,7 +34,6 @@ import {
   isDirty,
   getMode,
   setOnChange,
-  refreshEditorData,
   getEditActions,
   revertEditAction,
   saveCheckpoint,
@@ -152,10 +149,9 @@ if (layerSelect) {
     mapLayer.setSource(null);
     mapLayer.setSource(tileSource);
 
-    // Redraw markers, navmeshes & navlink
+    // Redraw markers and navmeshes
     updateMarkers(currentLayerKey);
     updateNavmesh(map, currentLayerKey);
-    updateNavlinkViz(currentLayerKey);
     updateCoordsVal();
 
     // Re-center maps
@@ -480,97 +476,7 @@ if (precacheToggle && precacheProgress && precachePercent && precacheCount) {
   });
 }
 
-// Navigation Linkage toggle
-const navlinkToggle = document.getElementById("navlink-toggle") as HTMLInputElement | null;
-const navlinkProgress = document.getElementById("navlink-progress");
-const navlinkPercent = document.getElementById("navlink-percent");
-
-if (navlinkToggle && navlinkProgress && navlinkPercent) {
-  const savedNavlink = localStorage.getItem("navlink-toggle");
-  if (savedNavlink !== null) {
-    navlinkToggle.checked = savedNavlink === "true";
-  }
-
-  navlinkToggle.addEventListener("change", async () => {
-    localStorage.setItem("navlink-toggle", String(navlinkToggle.checked));
-
-    if (navlinkToggle.checked) {
-      navlinkToggle.disabled = true;
-      navlinkProgress.style.display = "block";
-      navlinkPercent.textContent = "Starting...";
-
-      try {
-        const result = await downloadAndCacheNavlink((percent, message) => {
-          if (percent >= 0) {
-            navlinkPercent.textContent = `${percent}% - ${message}`;
-          } else {
-            navlinkPercent.textContent = message;
-          }
-        });
-
-        if (result) {
-          navlinkPercent.textContent = "100% - Navigation linkage loaded";
-          updateNavlinkVizToggleState();
-          updateNavlinkViz(currentLayerKey);
-        } else {
-          navlinkPercent.textContent = "Failed to download";
-          navlinkToggle.checked = false;
-          localStorage.setItem("navlink-toggle", "false");
-        }
-      } catch (e) {
-        navlinkPercent.textContent = `Error: ${e}`;
-        navlinkToggle.checked = false;
-        localStorage.setItem("navlink-toggle", "false");
-      } finally {
-        navlinkToggle.disabled = false;
-      }
-    } else {
-      await PMTilesDB.delete("navigation_linkage");
-      navlinkProgress.style.display = "none";
-      updateNavlinkVizToggleState();
-      updateNavlinkViz(currentLayerKey);
-    }
-  });
-}
-
-// Handle navlink visualization toggle
-const navlinkVizToggle = document.getElementById("navlink-viz-toggle") as HTMLInputElement | null;
-if (navlinkVizToggle) {
-  const savedNavlinkViz = localStorage.getItem("navlink-viz-toggle");
-  if (savedNavlinkViz !== null) {
-    navlinkVizToggle.checked = savedNavlinkViz === "true";
-  }
-  navlinkLayer.setVisible(navlinkVizToggle.checked);
-  navlinkVizToggle.addEventListener("change", () => {
-    localStorage.setItem("navlink-viz-toggle", String(navlinkVizToggle.checked));
-    navlinkLayer.setVisible(navlinkVizToggle.checked);
-  });
-}
-
-async function updateNavlinkVizToggleState() {
-  if (!navlinkVizToggle) return;
-  const hasData = await PMTilesDB.has("navigation_linkage");
-  navlinkVizToggle.disabled = !hasData;
-  if (!hasData) {
-    navlinkVizToggle.checked = false;
-    localStorage.setItem("navlink-viz-toggle", "false");
-    navlinkLayer.setVisible(false);
-  }
-}
-
-updateNavlinkVizToggleState();
-
-// Load cached navlink data and render on initial load
-getNavlinkData().then((data) => {
-  if (data) {
-    if (navlinkVizToggle) navlinkLayer.setVisible(navlinkVizToggle.checked);
-    updateNavlinkViz(currentLayerKey);
-  }
-  initEditor(map);
-  if (editorEnabled) {
-    refreshEditorData();
-  }
-});
+initEditor(map);
 
 // Drawing Tools Editor
 const editorToggle = document.getElementById("editor-toggle") as HTMLInputElement | null;
