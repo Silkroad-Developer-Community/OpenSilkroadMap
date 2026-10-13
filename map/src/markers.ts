@@ -4,6 +4,7 @@ import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
 import LineString from "ol/geom/LineString";
 import { convertSROToMap } from "./coord";
+import { assetUrl } from "./asset_url";
 import { npcStyle, teleportStyles, connectionStyles, solidConnectionStyles } from "./styles";
 import { getDungeonFloorKey } from "./navmesh";
 
@@ -178,7 +179,7 @@ export function fetchMarkersData(onLoaded: () => void) {
     }
   };
 
-  fetch("/assets/npcs.json")
+  fetch(assetUrl("npcs.json"))
     .then((res) => res.json())
     .then((data) => {
       npcsData = data;
@@ -187,7 +188,7 @@ export function fetchMarkersData(onLoaded: () => void) {
     })
     .catch((err) => console.warn("Could not load npcs.json:", err));
 
-  fetch("/assets/teleports.json")
+  fetch(assetUrl("teleports.json"))
     .then((res) => res.json())
     .then((data) => {
       teleportsData = data;

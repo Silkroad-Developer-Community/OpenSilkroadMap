@@ -3,6 +3,8 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 
 export default defineConfig({
+  base: Deno.env.get("PAGES_BASE_PATH") ?? "/",
+  publicDir: Deno.env.get("PAGES_PUBLIC_DIR") ?? "public",
   css: {
     postcss: {
       plugins: [tailwindcss(), autoprefixer()],
@@ -10,9 +12,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    watch: {
-      ignored: ["**/public/assets/**"],
-    },
   },
   build: {
     outDir: "dist",

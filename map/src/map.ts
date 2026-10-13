@@ -18,6 +18,7 @@ import { editorEnabled, getMode, importSingleTeleportLink } from "./navlink_edit
 import { WORLD_BOUNDS_Z9, TELEPORT_TYPES } from "./styles";
 import { PMTiles } from "pmtiles";
 import { PMTilesDB, BlobSource } from "./pmtiles_db";
+import { assetUrl } from "./asset_url";
 import { updateNavmesh, getDungeonFloorKey } from "./navmesh";
 
 export const regionOverlaySource = new VectorSource();
@@ -77,7 +78,7 @@ export function getPMTilesForLayer(layerKey: string): Promise<PMTiles> {
       if (cachedBlob) {
         pmtilesCache[layerKey] = new PMTiles(new BlobSource(layerKey, cachedBlob));
       } else {
-        pmtilesCache[layerKey] = new PMTiles(`/assets/${layerKey}.pmtiles`);
+        pmtilesCache[layerKey] = new PMTiles(assetUrl(`${layerKey}.pmtiles`));
       }
       return pmtilesCache[layerKey];
     })();
@@ -199,7 +200,11 @@ map.addInteraction(new DragPan({ condition: (e) => e.originalEvent.button === 1 
 map.getViewport().addEventListener("mousedown", (e) => {
   if (e.button === 1) e.preventDefault();
 });
-map.getInteractions().getArray().filter((i) => i instanceof DoubleClickZoom).forEach((i) => map.removeInteraction(i));
+map
+  .getInteractions()
+  .getArray()
+  .filter((i) => i instanceof DoubleClickZoom)
+  .forEach((i) => map.removeInteraction(i));
 
 // Coordinates DOM panel
 const coordsVal = document.getElementById("coords-val");
@@ -296,7 +301,10 @@ map.on("pointermove", (event) => {
     const pixel = map.getEventPixel(event.originalEvent);
     const hitFeature = map.forEachFeatureAtPixel(pixel, (f) => f) as Feature | null;
     const isClickable =
-      hitFeature && (hitFeature.getGeometry()?.getType() === "Point" || hitFeature.get("isConnection") || hitFeature.get("isNavlinkEdge"));
+      hitFeature &&
+      (hitFeature.getGeometry()?.getType() === "Point" ||
+        hitFeature.get("isConnection") ||
+        hitFeature.get("isNavlinkEdge"));
     map.getTargetElement().style.cursor = isClickable ? "pointer" : "";
 
     // Handle connection lines hover transitions
@@ -328,7 +336,11 @@ map.on("singleclick", (evt) => {
   const feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f) as Feature | null;
 
   // Restore style of previously selected line feature
-  if (selectedFeature && (selectedFeature.get("isConnection") || selectedFeature.get("isNavlinkEdge")) && selectedFeature !== feature) {
+  if (
+    selectedFeature &&
+    (selectedFeature.get("isConnection") || selectedFeature.get("isNavlinkEdge")) &&
+    selectedFeature !== feature
+  ) {
     selectedFeature.set("highlighted", false);
     selectedFeature = null;
   }
@@ -374,30 +386,32 @@ map.on("singleclick", (evt) => {
         <div class="popup-detail" style="margin-top: 8px; border-top: 1px solid #444; padding-top: 6px; font-weight: bold; color: #a0a0a0;">Connected Edges:</div>
         <div class="popup-detail" style="color: #888;">Walk: ${walkEdges.length}</div>
         <div class="popup-detail" style="color: #03dac6;">Teleport: ${teleportEdges.length}</div>
-        ${teleportEdges.length > 0
-          ? `<div class="popup-detail" style="margin-top: 4px; border-top: 1px solid #333; padding-top: 4px; font-weight: bold; color: #03dac6; font-size: 12px;">Teleport Connections:</div>
+        ${
+          teleportEdges.length > 0
+            ? `<div class="popup-detail" style="margin-top: 4px; border-top: 1px solid #333; padding-top: 4px; font-weight: bold; color: #03dac6; font-size: 12px;">Teleport Connections:</div>
               <div style="max-height: 150px; overflow-y: auto;">
               ${teleportEdges
-            .map((e) => {
-              const other = e.from === nodeId ? e.to : e.from;
-              return `<div class="popup-detail" style="font-size: 11px; padding: 2px 0; border-bottom: 1px solid #2a2a2a;">
+                .map((e) => {
+                  const other = e.from === nodeId ? e.to : e.from;
+                  return `<div class="popup-detail" style="font-size: 11px; padding: 2px 0; border-bottom: 1px solid #2a2a2a;">
                     → ${other}${e.npc ? `<br><span style="color: #888;">NPC: ${e.npc}</span>` : ""}${e.dest ? `<br><span style="color: #888;">Dest: ${e.dest}</span>` : ""}
                   </div>`;
-            })
-            .join("")}
+                })
+                .join("")}
               </div>`
-          : ""
+            : ""
         }
-        ${walkEdges.length > 0
-          ? `<div style="margin-top: 4px; border-top: 1px solid #333; padding-top: 4px; max-height: 200px; overflow-y: auto;">
+        ${
+          walkEdges.length > 0
+            ? `<div style="margin-top: 4px; border-top: 1px solid #333; padding-top: 4px; max-height: 200px; overflow-y: auto;">
               ${walkEdges
-            .map((e) => {
-              const other = e.from === nodeId ? e.to : e.from;
-              return `<div class="popup-detail" style="font-size: 10px; color: #666; padding: 1px 0;">→ ${other}</div>`;
-            })
-            .join("")}
+                .map((e) => {
+                  const other = e.from === nodeId ? e.to : e.from;
+                  return `<div class="popup-detail" style="font-size: 10px; color: #666; padding: 1px 0;">→ ${other}</div>`;
+                })
+                .join("")}
               </div>`
-          : ""
+            : ""
         }
       `;
       overlay.setPosition(coordinates);
@@ -450,8 +464,9 @@ map.on("singleclick", (evt) => {
         <div class="popup-detail">X: ${sro.x}</div>
         <div class="popup-detail">Y: ${sro.y}</div>
         <div class="popup-detail">Region: ${regionString}</div>
-        ${teleport.length > 0
-          ? `
+        ${
+          teleport.length > 0
+            ? `
           <div class="popup-detail" style="margin-top: 8px; border-top: 1px solid #444; padding-top: 6px; font-weight: bold; color: #03dac6;">Teleport Destinations:</div>
           ${teleport
             .map((d: any) => {
@@ -462,15 +477,19 @@ map.on("singleclick", (evt) => {
                 <a href="#" class="teleport-link" data-x="${d.x}" data-y="${d.y}" data-region="${r}" data-name="${d.name}" style="color: #bb86fc; text-decoration: underline; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   ${d.name} (Region: ${r})
                 </a>
-                ${editorEnabled ? `
+                ${
+                  editorEnabled
+                    ? `
                   <button class="import-single-tp-btn" data-src-name="${name}" data-src-codename="${codename}" data-src-x="${srcX}" data-src-y="${srcY}" data-src-region="${srcRegion}" data-dst-name="${d.name}" data-dst-x="${d.x}" data-dst-y="${d.y}" data-dst-region="${r}" data-target-id="${d.target_id ?? ""}" title="Import this teleport link" style="background: #03dac6; color: #121212; border: none; border-radius: 3px; font-weight: bold; font-size: 13px; width: 20px; height: 20px; line-height: 18px; text-align: center; cursor: pointer; padding: 0; flex-shrink: 0;">+</button>
-                ` : ""}
+                `
+                    : ""
+                }
               </div>
             `;
             })
             .join("")}
         `
-          : ""
+            : ""
         }
       `;
       overlay.setPosition(coordinates);
@@ -520,7 +539,7 @@ content.addEventListener("click", (e) => {
 
     importSingleTeleportLink(
       { codename: srcCodename, x: srcX, y: srcY, region: srcRegion },
-      { name: dstName, x: dstX, y: dstY, region: dstRegion, target_id: targetId }
+      { name: dstName, x: dstX, y: dstY, region: dstRegion, target_id: targetId },
     );
 
     importBtn.textContent = "✓";
@@ -594,8 +613,9 @@ content.addEventListener("click", (e) => {
     <div class="popup-detail">X: ${destSro.x}</div>
     <div class="popup-detail">Y: ${destSro.y}</div>
     <div class="popup-detail">Region: ${regionString}</div>
-    ${teleportList.length > 0
-      ? `
+    ${
+      teleportList.length > 0
+        ? `
       <div class="popup-detail" style="margin-top: 8px; border-top: 1px solid #444; padding-top: 6px; font-weight: bold; color: #03dac6;">Teleport Destinations:</div>
       ${teleportList
         .map((d: any) => {
@@ -611,7 +631,7 @@ content.addEventListener("click", (e) => {
         })
         .join("")}
     `
-      : ""
+        : ""
     }
   `;
   overlay.setPosition(coords);

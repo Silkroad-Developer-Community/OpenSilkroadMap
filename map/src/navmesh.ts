@@ -1,30 +1,55 @@
 import TileLayer from "ol/layer/WebGLTile";
-import ImageLayer from "ol/layer/Image";
 import XYZ from "ol/source/XYZ";
-import ImageStatic from "ol/source/ImageStatic";
 import { sroProjection, tileGrid } from "./coord";
 import { WORLD_BOUNDS_Z9 } from "./styles";
 import { PMTiles } from "pmtiles";
 import { PMTilesDB, BlobSource } from "./pmtiles_db";
+import { assetUrl } from "./asset_url";
 
-export let navmeshManifest: any = null;
+interface DungeonNavmeshFloor {
+  archive: string;
+  floor: number;
+  minX: number;
+  minZ: number;
+  maxX: number;
+  maxZ: number;
+}
+
+type DungeonNavmeshManifest = Record<string, DungeonNavmeshFloor[]>;
+
+export let navmeshManifest: DungeonNavmeshManifest | null = null;
 let currentNavmeshLayer: any = null;
-let currentDungeonLayers: any[] = [];
 
-// Fetch navmesh manifest and load initial navmesh
-fetch("/assets/img/silkroad/minimap/navmesh/d/manifest.json")
-  .then((res) => res.json())
-  .then((data) => {
-    navmeshManifest = data;
+export const navmeshManifestPromise = fetch(assetUrl("navmesh_dungeons.json"))
+  .then((res) => {
+    if (!res.ok) throw new Error(`Failed to load dungeon navmesh manifest: ${res.status}`);
+    return res.json();
   })
-  .catch(() => {
-    console.warn("Navmesh manifest not found");
+  .then((data: DungeonNavmeshManifest) => {
+    navmeshManifest = data;
+    return data;
+  })
+  .catch((error) => {
+    console.warn("Could not load dungeon navmesh manifest:", error);
+    return null;
   });
 
 const navmeshKey = "navmesh_world";
-const navmeshUrl = "/assets/navmesh_world.pmtiles";
+const navmeshUrl = assetUrl("navmesh_world.pmtiles");
 let navmeshPMTiles: PMTiles | null = null;
 let navmeshPMTilesPromise: Promise<PMTiles> | null = null;
+const dungeonNavmeshCache: Record<string, Promise<PMTiles>> = {};
+
+function getDungeonNavmeshPMTiles(archive: string): Promise<PMTiles> {
+  if (!dungeonNavmeshCache[archive]) {
+    dungeonNavmeshCache[archive] = (async () => {
+      const key = archive.replace(/\.pmtiles$/, "");
+      const cachedBlob = await PMTilesDB.get(key);
+      return cachedBlob ? new PMTiles(new BlobSource(key, cachedBlob)) : new PMTiles(assetUrl(archive));
+    })();
+  }
+  return dungeonNavmeshCache[archive];
+}
 
 function getNavmeshPMTiles(): Promise<PMTiles> {
   if (!navmeshPMTilesPromise) {
@@ -46,6 +71,49 @@ export function registerCachedNavmesh(blob: Blob) {
   const instance = new PMTiles(new BlobSource(navmeshKey, blob));
   navmeshPMTiles = instance;
   navmeshPMTilesPromise = Promise.resolve(instance);
+}
+
+function createDungeonNavmeshLayer(floorInfo: DungeonNavmeshFloor) {
+  const tileSource = new XYZ({
+    projection: sroProjection,
+    tileGrid,
+    tileUrlFunction: (tileCoord) => {
+      const tileGridZ = tileCoord[0];
+      if (tileGridZ === 0) return undefined;
+
+      const z = tileGridZ === 1 ? 6 : 9;
+      const tileX = tileCoord[1];
+      const tileY = -tileCoord[2];
+      const span = 256 / 2 ** z;
+      const minX = Math.floor((128 + floorInfo.minX / 1920) / span);
+      const maxX = Math.ceil((128 + floorInfo.maxX / 1920) / span) - 1;
+      const minY = Math.floor((127 + floorInfo.minZ / 1920) / span);
+      const maxY = Math.ceil((127 + floorInfo.maxZ / 1920) / span) - 1;
+      if (tileX < minX || tileX > maxX || tileY < minY || tileY > maxY) return undefined;
+      return floorInfo.archive;
+    },
+    tileLoadFunction: (tile: any, archive: string) => {
+      const tileCoord = tile.getTileCoord();
+      const z = tileCoord[0] === 1 ? 6 : 9;
+      const x = tileCoord[1];
+      const y = -tileCoord[2];
+      getDungeonNavmeshPMTiles(archive)
+        .then((pmtilesInstance) => pmtilesInstance.getZxy(z, x, y))
+        .then((res) => {
+          if (!res) throw new Error(`No dungeon navmesh tile at ${z}/${x}/${y}`);
+          const blobUrl = URL.createObjectURL(new Blob([res.data], { type: "image/webp" }));
+          const img = tile.getImage() as HTMLImageElement;
+          img.src = blobUrl;
+          img.addEventListener("load", () => URL.revokeObjectURL(blobUrl), { once: true });
+        })
+        .catch(() => {
+          (tile.getImage() as HTMLImageElement).src =
+            "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        });
+    },
+  });
+
+  return new TileLayer({ source: tileSource, opacity: 0.7, minZoom: 6 });
 }
 
 const navmeshTileSource = new XYZ({
@@ -113,10 +181,6 @@ let currentLayerKeyTemp = "world";
 export function updateNavmesh(map: any, currentLayerKey: string) {
   currentLayerKeyTemp = currentLayerKey;
 
-  // Clear any existing dungeon static overlays
-  currentDungeonLayers.forEach((layer) => map.removeLayer(layer));
-  currentDungeonLayers = [];
-
   if (currentNavmeshLayer) {
     if (currentNavmeshLayer === navmeshTileLayer) {
       navmeshTileSource.clear();
@@ -145,20 +209,7 @@ export function updateNavmesh(map: any, currentLayerKey: string) {
     if (floorList) {
       const floorInfo = floorList.find((f: any) => f.floor === floorIndex) || floorList[0];
       if (floorInfo) {
-        const minX = 128 + floorInfo.minX / 1920;
-        const minZ = 127 + floorInfo.minZ / 1920;
-        const maxX = 128 + floorInfo.maxX / 1920;
-        const maxZ = 127 + floorInfo.maxZ / 1920;
-
-        currentNavmeshLayer = new ImageLayer({
-          opacity: 0.7,
-          minZoom: 6,
-          source: new ImageStatic({
-            url: `/assets/img/silkroad/minimap/navmesh/d/${floorInfo.file}`,
-            projection: sroProjection,
-            imageExtent: [minX, minZ, maxX, maxZ],
-          }),
-        });
+        currentNavmeshLayer = createDungeonNavmeshLayer(floorInfo);
         map.addLayer(currentNavmeshLayer);
       }
     }
@@ -169,7 +220,7 @@ export function getDungeonFloorKey(rawX: number, rawY: number, region: number): 
   if (!navmeshManifest) return null;
   const floorList = navmeshManifest[String(region)];
   if (!floorList) return null;
-  const floor = floorList.find((f: any) => {
+  const floor = floorList.find((f) => {
     return rawX >= f.minX && rawX <= f.maxX && rawY >= f.minZ && rawY <= f.maxZ;
   });
   if (floor) {

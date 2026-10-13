@@ -1,21 +1,5 @@
 import { Style, Icon, Stroke } from "ol/style";
-
-export const LAYER_URLS: Record<string, string> = {
-  world: "/assets/img/silkroad/minimap/{z}/{x}x{y}.webp",
-  "32769_1": "/assets/img/silkroad/minimap/d/{z}/dh_a01_floor01_{x}x{y}.webp",
-  "32769_2": "/assets/img/silkroad/minimap/d/{z}/dh_a01_floor02_{x}x{y}.webp",
-  "32769_3": "/assets/img/silkroad/minimap/d/{z}/dh_a01_floor03_{x}x{y}.webp",
-  "32769_4": "/assets/img/silkroad/minimap/d/{z}/dh_a01_floor04_{x}x{y}.webp",
-  "32775": "/assets/img/silkroad/minimap/d/{z}/qt_a01_floor01_{x}x{y}.webp",
-  "32774": "/assets/img/silkroad/minimap/d/{z}/qt_a01_floor02_{x}x{y}.webp",
-  "32773": "/assets/img/silkroad/minimap/d/{z}/qt_a01_floor03_{x}x{y}.webp",
-  "32772": "/assets/img/silkroad/minimap/d/{z}/qt_a01_floor04_{x}x{y}.webp",
-  "32771": "/assets/img/silkroad/minimap/d/{z}/qt_a01_floor05_{x}x{y}.webp",
-  "32770": "/assets/img/silkroad/minimap/d/{z}/qt_a01_floor06_{x}x{y}.webp",
-  "32784": "/assets/img/silkroad/minimap/d/{z}/rn_sd_egypt1_01_{x}x{y}.webp",
-  "32786": "/assets/img/silkroad/minimap/d/{z}/flame_dungeon01_{x}x{y}.webp",
-  "32785": "/assets/img/silkroad/minimap/d/{z}/fort_dungeon01_{x}x{y}.webp",
-};
+import { assetUrl } from "./asset_url";
 
 // SRO Sector coordinate bounds normalized at zoom 9
 export const WORLD_BOUNDS_Z9 = { minX: 52, maxX: 505, minY: 70, maxY: 253 };
@@ -33,7 +17,7 @@ export const TELEPORT_TYPES: Record<number, string> = {
 
 export const npcStyle = new Style({
   image: new Icon({
-    src: "/assets/icons/mm_sign_npc.png",
+    src: assetUrl("icons/mm_sign_npc.png"),
     anchor: [0.5, 0.5],
     scale: 1.5,
   }),
@@ -42,43 +26,43 @@ export const npcStyle = new Style({
 export const teleportStyles: Record<number, Style> = {
   0: new Style({
     image: new Icon({
-      src: "/assets/icons/xy_gate.png",
+      src: assetUrl("icons/xy_gate.png"),
       anchor: [0.5, 0.5],
     }),
   }),
   1: new Style({
     image: new Icon({
-      src: "/assets/icons/fort_worldmap.png",
+      src: assetUrl("icons/fort_worldmap.png"),
       anchor: [0.5, 0.5],
     }),
   }),
   2: new Style({
     image: new Icon({
-      src: "/assets/icons/strut_revival_gate.png",
+      src: assetUrl("icons/strut_revival_gate.png"),
       anchor: [0.5, 0.5],
     }),
   }),
   3: new Style({
     image: new Icon({
-      src: "/assets/icons/strut_glory_gate.png",
+      src: assetUrl("icons/strut_glory_gate.png"),
       anchor: [0.5, 0.5],
     }),
   }),
   4: new Style({
     image: new Icon({
-      src: "/assets/icons/fort_small_worldmap.png",
+      src: assetUrl("icons/fort_small_worldmap.png"),
       anchor: [0.5, 0.5],
     }),
   }),
   5: new Style({
     image: new Icon({
-      src: "/assets/icons/map_world_icontel.png",
+      src: assetUrl("icons/map_world_icontel.png"),
       anchor: [0.5, 0.5],
     }),
   }),
   6: new Style({
     image: new Icon({
-      src: "/assets/icons/tahomet_gate.png",
+      src: assetUrl("icons/tahomet_gate.png"),
       anchor: [0.5, 0.5],
     }),
   }),

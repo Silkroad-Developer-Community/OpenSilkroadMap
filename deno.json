@@ -2,6 +2,7 @@
   "tasks": {
     "dev": "cd map && deno task dev",
     "build": "cd map && deno task build",
+    "deploy": "uv run scripts/deploy_pages.py",
     "preview": "cd map && deno task preview"
   }
 }

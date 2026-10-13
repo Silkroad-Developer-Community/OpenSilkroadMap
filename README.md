@@ -29,26 +29,24 @@ deno install
 
 ### 2. Extracting Client Files (.pk2)
 
-To extract the necessary game assets from your Silkroad Online client, you can use the [pk2_mate tool binary](https://github.com/Veykril/pk2/releases).
-
 Extract the PK2 archives into the `game_source` folder:
+
+You can use the [pk2_mate tool binary](https://github.com/Veykril/pk2/releases).
 
 ```shell
 mkdir game_source
 pk2_mate extract --archive "C:\Games\SRO\Media.pk2" --out "game_source\Media"
 pk2_mate extract --archive "C:\Games\SRO\Data.pk2" --out "game_source\Data"
-pk2_mate extract --archive "C:\Games\SRO\Map.pk2" --out "game_source\Map"
 ```
 
 ### 3. Processing Silkroad Assets
 
 ```shell
-uv run scripts/convert_ddjs.py
-uv run scripts/generate_tiles.py
-uv run scripts/generate_navmesh.py
-uv run scripts/generate_game_data.py
 uv run scripts/generate_pmtiles.py
+uv run scripts/generate_game_data.py
 ```
+
+You can delete the `game_source` directory afterwards.
 
 ### 4. Run the Development Server
 
@@ -66,8 +64,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## TODO
 
-- Teleporter imports
 - Opacity sliders for layers
-- Deployment
 - OasisBot connection
   - Dungeon integration (on NavLink display, need to quantize heights on dungeon regions so that they don't render on top of each other)

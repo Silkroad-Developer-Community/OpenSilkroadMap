@@ -10,7 +10,7 @@ import {
   tileSource,
   updateCoordsVal,
 } from "./map";
-import { getDungeonFloorKey, registerCachedNavmesh, updateNavmesh } from "./navmesh";
+import { getDungeonFloorKey, navmeshManifestPromise, registerCachedNavmesh, updateNavmesh } from "./navmesh";
 import {
   fetchMarkersData,
   npcsData,
@@ -22,6 +22,7 @@ import {
 import { convertSROToMap } from "./coord";
 import { TELEPORT_TYPES } from "./styles";
 import { PMTilesDB } from "./pmtiles_db";
+import { assetUrl } from "./asset_url";
 import { getNavlinkData, downloadAndCacheNavlink } from "./navlink";
 import { navlinkLayer, updateNavlinkViz } from "./navlink_viz";
 import {
@@ -394,6 +395,14 @@ const ARCHIVE_KEYS = [
   "32785",
 ];
 
+async function getArchiveKeys() {
+  const manifest = await navmeshManifestPromise;
+  const dungeonNavmeshKeys = Object.values(manifest ?? {})
+    .flat()
+    .map((floor) => floor.archive.replace(/\.pmtiles$/, ""));
+  return [...ARCHIVE_KEYS, ...dungeonNavmeshKeys];
+}
+
 if (precacheToggle && precacheProgress && precachePercent && precacheCount) {
   const savedPrecache = localStorage.getItem("precache-toggle");
   if (savedPrecache !== null) {
@@ -409,11 +418,12 @@ if (precacheToggle && precacheProgress && precachePercent && precacheCount) {
 
       try {
         let completedCount = 0;
-        for (const key of ARCHIVE_KEYS) {
+        const archiveKeys = await getArchiveKeys();
+        for (const key of archiveKeys) {
           precachePercent.textContent = `Downloading ${key}...`;
-          precacheCount.textContent = `${completedCount}/${ARCHIVE_KEYS.length}`;
+          precacheCount.textContent = `${completedCount}/${archiveKeys.length}`;
 
-          const url = `/assets/${key}.pmtiles`;
+          const url = assetUrl(`${key}.pmtiles`);
           const res = await fetch(url);
           if (!res.ok) throw new Error(`Failed to fetch ${key}`);
 
@@ -441,16 +451,16 @@ if (precacheToggle && precacheProgress && precachePercent && precacheCount) {
 
           if (key === "navmesh_world") {
             registerCachedNavmesh(fullBlob);
-          } else {
+          } else if (!key.startsWith("navmesh_")) {
             registerCachedPMTiles(key, fullBlob);
           }
 
           completedCount++;
-          precacheCount.textContent = `${completedCount}/${ARCHIVE_KEYS.length}`;
+          precacheCount.textContent = `${completedCount}/${archiveKeys.length}`;
         }
 
         precachePercent.textContent = "100% (Done)";
-        precacheCount.textContent = `Cached ${ARCHIVE_KEYS.length} archives`;
+        precacheCount.textContent = `Cached ${archiveKeys.length} archives`;
       } catch (e) {
         precachePercent.textContent = "Error caching";
         precacheCount.textContent = String(e);
@@ -460,7 +470,7 @@ if (precacheToggle && precacheProgress && precachePercent && precacheCount) {
         precacheToggle.disabled = false;
       }
     } else {
-      for (const key of ARCHIVE_KEYS) {
+      for (const key of await getArchiveKeys()) {
         await PMTilesDB.delete(key);
       }
       precacheProgress.style.display = "none";
